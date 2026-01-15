@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohio 2-Character License Plates</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        th:hover {
+            background: #e9ecef;
+        }
+        
+        th::after {
+            content: ' ↕';
+            opacity: 0.3;
+            font-size: 0.8em;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.issued {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .plate {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #1e3c72;
+        }
+        
+        .last-checked {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        footer {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ohio 2-Character License Plates</h1>
+            <p>Track availability of two-letter license plates</p>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div class="stat-label">Total Plates</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="availableCount">0</div>
+                    <div class="stat-label">Available</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="issuedCount">0</div>
+                    <div class="stat-label">Issued</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search plate (e.g., TQ, AB)...">
+            </div>
+            <div class="filter-buttons">
+                <button id="filterAll" class="active">All</button>
+                <button id="filterAvailable">Available</button>
+                <button id="filterIssued">Issued</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table id="platesTable">
+                <thead>
+                    <tr>
+                        <th data-column="plate">Plate</th>
+                        <th data-column="status">Status</th>
+                        <th data-column="lastChecked">Last Checked</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            Last updated: <span id="lastUpdate"></span>
+        </footer>
+    </div>
+
+    <script>
+        let platesData = [];
+        let currentFilter = 'all';
+        let currentSort = { column: 'plate', direction: 'asc' };
+
+        // Load CSV data
+        async function loadCSV() {
+            try {
+                const response = await fetch('plates.csv');
+                const csvText = await response.text();
+                
+                // Parse CSV
+                const lines = csvText.trim().split('\n');
+                const headers = lines[0].split(',').map(h => h.trim());
+                
+                platesData = lines.slice(1).map(line => {
+                    const values = line.split(',').map(v => v.trim());
+                    return {
+                        plate: values[0],
+                        status: values[1],
+                        lastChecked: values[2]
+                    };
+                });
+                
+                updateStats();
+                renderTable();
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                document.getElementById('tableBody').innerHTML = 
+                    '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #999;">Error loading data. Make sure plates.csv exists in the same directory.</td></tr>';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function updateStats() {
+            const total = platesData.length;
+            const available = platesData.filter(p => p.status === 'available').length;
+            const issued = platesData.filter(p => p.status === 'issued').length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('availableCount').textContent = available;
+            document.getElementById('issuedCount').textContent = issued;
+            document.getElementById('lastUpdate').textContent = formatDate(new Date().toISOString());
+        }
+
+        function sortData(data, column, direction) {
+            return [...data].sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                if (column === 'lastChecked') {
+                    aVal = new Date(aVal);
+                    bVal = new Date(bVal);
+                }
+                
+                if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function filterData(data, filter, searchTerm) {
+            let filtered = data;
+            
+            if (filter !== 'all') {
+                filtered = filtered.filter(p => p.status === filter);
+            }
+            
+            if (searchTerm) {
+                filtered = filtered.filter(p => 
+                    p.plate.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            
+            return filtered;
+        }
+
+        function renderTable() {
+            const searchTerm = document.getElementById('searchInput').value;
+            let data = filterData(platesData, currentFilter, searchTerm);
+            data = sortData(data, currentSort.column, currentSort.direction);
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = data.map(plate => `
+                <tr>
+                    <td><span class="plate">${plate.plate}</span></td>
+                    <td><span class="status ${plate.status}">${plate.status}</span></td>
+                    <td><span class="last-checked">${formatDate(plate.lastChecked)}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateSortHeaders() {
+            document.querySelectorAll('th').forEach(th => {
+                th.className = '';
+                if (th.dataset.column === currentSort.column) {
+                    th.className = `sort-${currentSort.direction}`;
+                }
+            });
+        }
+
+        // Event listeners
+        document.querySelectorAll('th').forEach(th => {
+            th.addEventListener('click', () => {
+                const column = th.dataset.column;
+                if (currentSort.column === column) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = 'asc';
+                }
+                updateSortHeaders();
+                renderTable();
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        document.getElementById('filterAll').addEventListener('click', () => {
+            currentFilter = 'all';
+            document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+            document.getElementById('filterAll').classList.add('active');
+            renderTable();
+        });
+
+        document.getElementById('filterAvailable').addEventListener('click', () => {
+            currentFilter = 'available';
+            document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+            document.getElementById('filterAvailable').classList.add('active');
+            renderTable();
+        });
+
+        document.getElementById('filterIssued').addEventListener('click', () => {
+            currentFilter = 'issued';
+            document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+            document.getElementById('filterIssued').classList.add('active');
+            renderTable();
+        });
+
+        // Initialize
+        loadCSV();
+    </script>
+</body>
+</html>
